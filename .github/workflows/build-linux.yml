@@ -1,0 +1,39 @@
+
+name: Preparar backend Linux
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Baixar codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Instalar dependencias de producao
+        run: npm ci --omit=dev --no-audit --no-fund
+
+      - name: Verificar SQLite
+        run: |
+          node -e "const Database = require('better-sqlite3'); const db = new Database(':memory:'); console.log(db.prepare('SELECT 1 AS ok').get()); db.close();"
+
+      - name: Compactar dependencias
+        run: tar -czf backend-linux.tar.gz node_modules
+
+      - name: Disponibilizar arquivo
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-linux
+          path: backend-linux.tar.gz
+          retention-days: 7

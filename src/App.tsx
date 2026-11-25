@@ -1,158 +1,100 @@
-import React, { useState, useMemo } from 'react';
-import { StoreProvider, useStore } from './context/StoreContext';
-import { Header } from './components/Header';
-import { HeroBanner } from './components/HeroBanner';
-import { CombosSection } from './components/CombosSection';
-import { CategoryNav } from './components/CategoryNav';
-import { ProductCard } from './components/ProductCard';
-import { PizzaCustomizerModal } from './components/PizzaCustomizerModal';
-import { CartDrawer } from './components/CartDrawer';
-import { CheckoutModal } from './components/CheckoutModal';
-import { AdminPanel } from './components/AdminPanel';
-import { FlyerModal } from './components/FlyerModal';
-import { Footer } from './components/Footer';
-import { formatCurrency } from './utils/pricing';
-import { Crown, ShoppingBag, ArrowRight } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { api } from './services/api';
+import Editor, { type EditorState } from './components/Editor';
+import type { CategoryInfo, Product } from './types';
 
-const MainContent: React.FC = () => {
-  const {
-    products,
-    categories,
-    activeCategory,
-    cart,
-    cartTotalCount,
-    cartSubtotal,
-    setIsCartOpen,
-    openCustomizer,
-    isFlyerOpen,
-    setIsFlyerOpen,
-  } = useStore();
-
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const displayedProducts = useMemo(() => {
-    return products.filter((product) => {
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        return (
-          product.name.toLowerCase().includes(q) ||
-          product.description.toLowerCase().includes(q) ||
-          categories.find(c => c.id === product.category)?.name.toLowerCase().includes(q) ||
-          product.ingredients.some((i) => i.toLowerCase().includes(q))
-        );
-      }
-      return product.category === activeCategory;
-    });
-  }, [products, categories, activeCategory, searchQuery]);
-
-  const currentCategoryInfo = categories.find((c) => c.id === activeCategory);
-
-  return (
-    <div className="min-h-screen bg-[#0b0c10] text-[#f3f4f6] flex flex-col selection:bg-amber-500 selection:text-black">
-      <Header />
-      <HeroBanner />
-      <CombosSection />
-      <CategoryNav searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 w-full space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-800 pb-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">{currentCategoryInfo?.icon || '🍕'}</span>
-              <h2 className="text-xl sm:text-3xl font-black font-royal text-white">
-                {searchQuery ? `Resultados para "${searchQuery}"` : currentCategoryInfo?.name || 'Cardápio'}
-              </h2>
-            </div>
-            <p className="text-xs sm:text-sm text-gray-400 mt-1">
-              {searchQuery
-                ? `${displayedProducts.length} produto(s) encontrado(s)`
-                : currentCategoryInfo?.description || 'Escolha seu sabor favorito preparado na hora.'}
-            </p>
-          </div>
-
-          {(!searchQuery && activeCategory.startsWith('pizzas-')) && (
-            <button
-              onClick={() => openCustomizer()}
-              className="self-start sm:self-auto px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-black text-xs rounded-xl shadow-md shadow-amber-500/20 flex items-center gap-1.5 transition-all transform active:scale-95"
-            >
-              <Crown className="w-4 h-4 text-black" />
-              <span>Montar Pizza Meio a Meio</span>
-            </button>
-          )}
-        </div>
-
-        {/* Products Grid */}
-        {displayedProducts.length === 0 ? (
-          <div className="py-16 text-center space-y-3">
-            <div className="text-4xl">🍕</div>
-            <h3 className="text-lg font-bold text-white">Nenhum produto encontrado</h3>
-            <p className="text-xs text-gray-400 max-w-sm mx-auto">
-              Não encontramos nenhum item correspondente a "{searchQuery}". Tente buscar por outro termo ou escolha uma das categorias acima.
-            </p>
-            <button
-              onClick={() => setSearchQuery('')}
-              className="px-4 py-2 bg-amber-500 text-black font-bold text-xs rounded-xl"
-            >
-              Limpar busca
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-            {displayedProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        )}
-
-      </main>
-
-      {/* Floating Bottom Cart Bar for Mobile Users */}
-      {cart.length > 0 && (
-        <div className="fixed bottom-3 inset-x-3 z-30 sm:hidden">
-          <div className="bg-[#12141f]/95 backdrop-blur-md border border-amber-500/40 rounded-2xl p-3 shadow-2xl shadow-black/80 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center text-white relative shadow-md">
-                <ShoppingBag className="w-5 h-5" />
-                <span className="absolute -top-1.5 -right-1.5 bg-amber-400 text-black font-extrabold text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
-                  {cartTotalCount}
-                </span>
-              </div>
-              <div>
-                <span className="text-[10px] text-gray-400 block uppercase font-semibold">Total no Carrinho</span>
-                <span className="text-base font-black text-amber-400 leading-none">
-                  {formatCurrency(cartSubtotal)}
-                </span>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setIsCartOpen(true)}
-              className="px-4 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white font-black text-xs rounded-xl shadow-lg flex items-center gap-1.5 active:scale-95 transition-all"
-            >
-              <span>Ver Pedido</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Footer */}
-      <Footer />
-
-      {/* Modals & Drawers */}
-      <PizzaCustomizerModal />
-      <CartDrawer />
-      <CheckoutModal />
-      <AdminPanel />
-      <FlyerModal isOpen={isFlyerOpen} onClose={() => setIsFlyerOpen(false)} />
-    </div>
-  );
-};
+type Catalog = { categories: CategoryInfo[]; products: Product[] };
+const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
 export default function App() {
-  return (
-    <StoreProvider>
-      <MainContent />
-    </StoreProvider>
-  );
+  const [catalog, setCatalog] = useState<Catalog>({ categories: [], products: [] });
+  const [loading, setLoading] = useState(true);
+  const [selected, select] = useState('');
+  const [token, setToken] = useState('');
+  const [auth, setAuth] = useState<'login' | 'setup' | null>(null);
+  const [editor, edit] = useState<EditorState | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const category = catalog.categories.find(c => c.id === selected) || catalog.categories[0];
+  const dishes = catalog.products.filter(p => p.category === category?.id);
+
+  async function refresh() { setCatalog(await api<Catalog>('store')); }
+  async function perform(action: () => Promise<void>) {
+    setError('');
+    setBusy(true);
+    try { await action(); }
+    catch (e) { setError(e instanceof Error ? e.message : 'Falha ao acessar o cardápio.'); }
+    finally { setBusy(false); }
+  }
+  useEffect(() => { void perform(refresh).finally(() => setLoading(false)); }, []);
+
+  function save(body: Record<string, unknown>) {
+    if (!editor) return;
+    const path = editor.kind === 'category' ? 'categories' : 'products';
+    const id = editor.item?.id;
+    void perform(async () => {
+      const result = await api<{ category?: CategoryInfo; product?: Product }>(
+        'admin/' + path + (id ? '/' + encodeURIComponent(id) : ''), id ? 'PUT' : 'POST', body, token);
+      edit(null);
+      select(result.category?.id || result.product!.category);
+      await refresh();
+    });
+  }
+  function remove(path: string, item: CategoryInfo | Product) {
+    if (!window.confirm('Excluir “' + item.name + '”?')) return;
+    void perform(async () => {
+      await api('admin/' + path + '/' + encodeURIComponent(item.id), 'DELETE', undefined, token);
+      await refresh();
+    });
+  }
+  function openEditor(next: EditorState) { setError(''); edit(next); }
+
+  return <>
+    <header><div className="wrap mast"><span className="brand">King Pizzaria</span>
+      <button disabled={busy} onClick={() => void perform(async () => {
+        if (token) {
+          await api('admin/logout', 'POST', undefined, token);
+          setToken(''); edit(null);
+        } else {
+          const status = await api<{ requiresSetup: boolean }>('admin/auth-status');
+          setAuth(status.requiresSetup ? 'setup' : 'login');
+        }
+      })}>{token ? 'Sair da administração' : 'Administrar'}</button>
+    </div></header>
+    <main className="wrap"><h1>{token ? 'Administrar cardápio' : 'Cardápio'}</h1>
+      {error && <p role="alert">{error}</p>}
+      {auth ? <form className="sheet" onSubmit={event => {
+        event.preventDefault();
+        const password = new FormData(event.currentTarget).get('password');
+        void perform(async () => {
+          const result = await api<{ token: string }>('admin/' + auth, 'POST', { password });
+          setToken(result.token); setAuth(null);
+        });
+      }}>
+        <h2>{auth === 'setup' ? 'Criar senha de administrador' : 'Acesso administrativo'}</h2>
+        <label>Senha<input name="password" type="password" autoFocus required minLength={auth === 'setup' ? 4 : 1} /></label>
+        <div className="actions"><button disabled={busy}>{auth === 'setup' ? 'Criar senha' : 'Entrar'}</button>
+          <button type="button" onClick={() => { setAuth(null); setError(''); }}>Cancelar</button></div>
+      </form> : editor ? <Editor editor={editor} categories={catalog.categories} categoryId={category?.id || ''}
+        busy={busy} onSave={save} onClose={() => { edit(null); setError(''); }} />
+      : loading ? <p>Carregando cardápio…</p> : <>
+        <div className="bar"><h2>Categorias</h2>{token && <button disabled={busy} onClick={() => openEditor({ kind: 'category' })}>Nova categoria</button>}</div>
+        <nav aria-label="Categorias">{catalog.categories.map(c => <button key={c.id} aria-pressed={c.id === category?.id}
+          onClick={() => { select(c.id); setError(''); }}>{c.name}</button>)}</nav>
+        {category ? <section>
+          <div className="bar"><h2>{category.name}</h2>{token && <div className="actions">
+            <button disabled={busy} onClick={() => openEditor({ kind: 'product' })}>Novo prato</button>
+            <button disabled={busy} onClick={() => openEditor({ kind: 'category', item: category })}>Editar categoria</button>
+            <button disabled={busy} onClick={() => remove('categories', category)}>Excluir categoria</button>
+          </div>}</div>
+          {dishes.map(p => <article key={p.id}><div className="bar"><h3>{p.name}</h3><strong>{money.format(p.price)}</strong></div>
+            {p.description && <p>{p.description}</p>}{!p.available && <p><b>Indisponível</b></p>}
+            {token && <div className="actions"><button disabled={busy} onClick={() => openEditor({ kind: 'product', item: p })}>Editar prato</button>
+              <button disabled={busy} onClick={() => remove('products', p)}>Excluir prato</button></div>}
+          </article>)}
+          {!dishes.length && <p>Nenhum prato cadastrado nesta categoria.</p>}
+        </section> : <p>Nenhuma categoria cadastrada.</p>}
+      </>}
+    </main>
+  </>;
 }

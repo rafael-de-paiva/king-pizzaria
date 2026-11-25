@@ -1,6 +1,0 @@
-{
-  "name": "King Pizzaria - Cardápio Digital & Pedidos",
-  "description": "Cardápio digital moderno e sistema de pedidos com envio direto para o WhatsApp e painel administrativo exclusivo da King Pizzaria.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
